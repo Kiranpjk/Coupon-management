@@ -50,7 +50,7 @@ This system provides REST APIs to create coupons with complex eligibility criter
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd Anshumat
+ 
    ```
 
 2. **Install dependencies**
@@ -506,48 +506,3 @@ Anshumat/
    - **Environment Variables:**
      - `VITE_API_URL=<your-render-backend-url>`
 
----
-
-## 📝 Demo Credentials
-
-For testing and review purposes:
-
-- **Email:** hire-me@anshumat.org
-- **Password:** HireMe@2025!
-
-> **Note:** These are included in the seed data for reviewer access as per assignment requirements.
-
----
-
-## 🎯 Assignment Requirements Checklist
-
-- ✅ REST API to create coupons with eligibility rules
-- ✅ REST API to find best matching coupon
-- ✅ Support for FLAT and PERCENT discount types
-- ✅ User-based eligibility (tiers, spend, orders, countries, first order)
-- ✅ Cart-based eligibility (value, categories, exclusions, item count)
-- ✅ Best coupon selection with deterministic tie-breaking
-- ✅ In-memory storage (no database required)
-- ✅ Seed data with demo coupons
-- ✅ Error handling and validation
-- ✅ Clean code structure and documentation
-- ✅ Comprehensive README
-- ✅ Optional: Modern admin dashboard UI
-
----
-
-## 📧 Contact
-
-**Assignment Name:** Coupon Management  
-**Submitted to:** Anshumat @ Internshala  
-**Email:** hire-me@anshumat.org
-
----
-
-## 📄 License
-
-ISC
-
----
-
-**Built with ❤️ for Internshala Assignment**
