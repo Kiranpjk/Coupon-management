@@ -1,5 +1,8 @@
 # Coupon Management System
 
+[![CI](https://github.com/Kiranpjk/coupon-management/actions/workflows/ci.yml/badge.svg)](https://github.com/Kiranpjk/coupon-management/actions/workflows/ci.yml)
+[![Docker](https://github.com/Kiranpjk/coupon-management/actions/workflows/docker.yml/badge.svg)](https://github.com/Kiranpjk/coupon-management/actions/workflows/docker.yml)
+
 A comprehensive e-commerce coupon management system with advanced eligibility rules and intelligent best-coupon selection algorithm.
 
 ## 🚀 Project Overview
@@ -19,11 +22,12 @@ This system provides REST APIs to create coupons with complex eligibility criter
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Runtime:** Node.js 18+
+- **Runtime:** Node.js 22+
 - **Framework:** Express.js
 - **Language:** JavaScript (ES Modules)
 - **Validation:** Custom middleware
 - **CORS:** Enabled for frontend integration
+- **Testing:** `node:test` + supertest, built-in coverage
 
 ### Frontend
 - **Framework:** React 18
@@ -32,16 +36,18 @@ This system provides REST APIs to create coupons with complex eligibility criter
 - **HTTP Client:** Axios
 - **UI:** Modern glassmorphism design with gradients
 
-### Deployment
-- **Backend:** Render (planned)
-- **Frontend:** Vercel (planned)
+### DevOps
+- **Containers:** Multi-stage Dockerfiles (non-root), docker-compose
+- **CI/CD:** GitHub Actions (tests + coverage, client build, Docker smoke test, image publish to GHCR)
+- **Dependencies:** Dependabot (npm + GitHub Actions)
+- **Hosting:** Render / Vercel (planned, not set up)
 
 ---
 
 ## 📋 How to Run
 
 ### Prerequisites
-- Node.js 18 or higher
+- Node.js 22 or higher
 - npm or yarn package manager
 - Git (for cloning)
 
@@ -49,8 +55,8 @@ This system provides REST APIs to create coupons with complex eligibility criter
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
- 
+   git clone https://github.com/Kiranpjk/coupon-management.git
+   cd coupon-management
    ```
 
 2. **Install dependencies**
@@ -60,7 +66,7 @@ This system provides REST APIs to create coupons with complex eligibility criter
 
 3. **Configure environment**
    ```bash
-   # Create .env file (already included)
+   cp .env.example .env
    # Default configuration:
    # PORT=5000
    # NODE_ENV=development
@@ -222,7 +228,7 @@ http://localhost:5000/api
       "discountValue": 25,
       "maxDiscountAmount": 1000,
       "startDate": "2025-01-01",
-      "endDate": "2025-12-31",
+      "endDate": "2030-12-31",
       "eligibility": {
         "minLifetimeSpend": 5000,
         "minOrdersPlaced": 5
@@ -350,6 +356,62 @@ The system comes pre-loaded with 7 demo coupons:
 
 ---
 
+## ✅ Running Tests
+
+```bash
+npm test                # unit + API tests (node:test + supertest)
+npm run test:coverage   # same, with a coverage table
+```
+
+- `test/DiscountService.test.js`, `EligibilityService.test.js`, `BestCouponService.test.js`, `CouponStore.test.js`: unit tests for every service, including all eligibility rules and tie-breakers.
+- `test/api.test.js`: HTTP tests for every route, including validation errors.
+
+### Bugs found by tests
+
+Writing the tests surfaced these bugs, which are now fixed:
+
+1. **Negative final price:** a FLAT coupon larger than the cart (e.g. ₹200 off a ₹150 cart) gave `finalPrice: -50`. Discounts are now capped at the cart value.
+2. **`maxDiscountAmount: null` zeroed PERCENT discounts:** the API docs show `"maxDiscountAmount": null`, but `Math.min(discount, null)` is `0`. `null` now means "no cap".
+3. **`usageLimitPerUser: null` disabled the coupon:** `0 >= null` is `true`, so the coupon was always skipped. `null` now means "unlimited".
+4. **Missing user fields bypassed rules:** if `lifetimeSpend` or `ordersPlaced` was omitted, `undefined < 5000` is `false`, so the user passed `minLifetimeSpend` / `minOrdersPlaced` checks (e.g. got LOYAL25). Missing values now count as `0`.
+5. **Timezone-dependent end date:** `startDate` was parsed as UTC midnight but the end of `endDate` was set in the server's local timezone, so validity depended on where the server ran. Both now use UTC.
+6. **All seed coupons had expired:** they ended on 2025-12-31, so `/api/coupons/best` always returned `null`. Seed end dates are now 2030-12-31.
+7. **Floating point noise:** e.g. 15% of 999.99 returned 149.9985. Discounts and final prices are rounded to 2 decimals.
+
+Input validation was also added (`discountValue` must be a number ≥ 0 and ≤ 100 for PERCENT, valid dates with `startDate ≤ endDate`, numeric `unitPrice`, integer `quantity`). Bad input now returns `400` instead of silently producing `NaN` prices or coupons that can never match.
+
+---
+
+## 🐳 Run with Docker
+
+```bash
+docker compose up --build
+```
+
+- Dashboard: http://localhost:8080 (nginx serves the built React app and proxies `/api` to the API container)
+- API: http://localhost:5000 (health check: `/health`)
+
+Both images are multi-stage and run as non-root users (`node` for the API, `nginx-unprivileged` for the client). The API image has a Docker `HEALTHCHECK` on `/health`.
+
+The API image is published on every push to `main`:
+
+```bash
+docker run -p 5000:5000 ghcr.io/kiranpjk/coupon-management:latest
+```
+
+---
+
+## 🔄 CI/CD
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| [`ci.yml`](.github/workflows/ci.yml) | push to `main`, pull requests | `npm ci`, tests with coverage (table in the job summary), client `npm run build`, `docker compose build` + smoke test of the running stack |
+| [`docker.yml`](.github/workflows/docker.yml) | push to `main`, manual | Builds the API image and pushes `latest` and `sha-<commit>` tags to `ghcr.io/kiranpjk/coupon-management` using `GITHUB_TOKEN` |
+
+Dependabot checks npm dependencies (root and `client/`) and GitHub Actions weekly.
+
+---
+
 ## 🧪 Testing Guide
 
 ### Using the Dashboard
@@ -400,7 +462,11 @@ Expected: **LOYAL25** (25% off = ₹625 discount)
 ## 📁 Project Structure
 
 ```
-Anshumat/
+coupon-management/
+├── .github/
+│   ├── workflows/ci.yml             # Tests, coverage, client build, Docker smoke test
+│   ├── workflows/docker.yml         # Publish API image to GHCR
+│   └── dependabot.yml
 ├── src/
 │   ├── controllers/
 │   │   └── couponController.js      # API request handlers
@@ -413,7 +479,9 @@ Anshumat/
 │   │   └── BestCouponService.js     # Best coupon selection
 │   ├── middleware/
 │   │   └── errorHandler.js          # Error handling middleware
-│   └── index.js                     # Express app entry point
+│   ├── app.js                       # Express app (imported by tests)
+│   └── index.js                     # Server entry point (app.listen)
+├── test/                            # Unit tests (services) + API tests (supertest)
 ├── client/
 │   ├── src/
 │   │   ├── components/
@@ -425,9 +493,12 @@ Anshumat/
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── tailwind.config.js
+│   ├── Dockerfile                   # Vite build -> unprivileged nginx
+│   ├── nginx.conf                   # Serves the SPA, proxies /api to the API
 │   └── package.json
+├── Dockerfile                       # API image (multi-stage, non-root)
+├── docker-compose.yml               # API + client
 ├── package.json
-├── .env
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -503,6 +574,5 @@ Anshumat/
    - **Root Directory:** `client`
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
-   - **Environment Variables:**
-     - `VITE_API_URL=<your-render-backend-url>`
+   - **Note:** the client calls relative `/api/...` URLs, so add a Vercel rewrite from `/api/*` to the backend URL.
 
