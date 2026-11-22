@@ -5,6 +5,39 @@ import { BestCouponService } from '../services/BestCouponService.js';
  * Controller for coupon-related operations
  */
 
+const isNonNegativeNumber = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+const isValidDate = (v) => typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
+const isOptionalNonNegativeNumber = (v) => v === undefined || v === null || isNonNegativeNumber(v);
+
+/**
+ * Returns an error message for invalid coupon numbers/dates, or null if valid.
+ */
+const validateCouponValues = (c) => {
+    if (typeof c.code !== 'string' || c.code.trim() === '') return 'code must be a non-empty string';
+    if (!isNonNegativeNumber(c.discountValue)) return 'discountValue must be a non-negative number';
+    if (c.discountType === 'PERCENT' && c.discountValue > 100) return 'discountValue for PERCENT coupons must be <= 100';
+    if (!isOptionalNonNegativeNumber(c.maxDiscountAmount)) return 'maxDiscountAmount must be a non-negative number';
+    if (!isOptionalNonNegativeNumber(c.usageLimitPerUser)) return 'usageLimitPerUser must be a non-negative number';
+    if (!isValidDate(c.startDate) || !isValidDate(c.endDate)) return 'startDate and endDate must be valid dates (YYYY-MM-DD)';
+    if (new Date(c.startDate) > new Date(c.endDate)) return 'startDate must be on or before endDate';
+    if (c.eligibility !== undefined && (typeof c.eligibility !== 'object' || c.eligibility === null || Array.isArray(c.eligibility))) {
+        return 'eligibility must be an object';
+    }
+    return null;
+};
+
+/**
+ * Returns an error message for invalid cart items, or null if valid.
+ */
+const validateCartItems = (items) => {
+    for (const [i, item] of items.entries()) {
+        if (!item || typeof item !== 'object') return `cart.items[${i}] must be an object`;
+        if (!isNonNegativeNumber(item.unitPrice)) return `cart.items[${i}].unitPrice must be a non-negative number`;
+        if (!Number.isInteger(item.quantity) || item.quantity < 0) return `cart.items[${i}].quantity must be a non-negative integer`;
+    }
+    return null;
+};
+
 /**
  * Create a new coupon
  * POST /api/coupons
@@ -14,7 +47,7 @@ export const createCoupon = (req, res) => {
         const couponData = req.body;
 
         // Validate required fields
-        if (!couponData.code || !couponData.description || !couponData.discountType ||
+        if (!couponData || typeof couponData !== 'object' || !couponData.code || !couponData.description || !couponData.discountType ||
             couponData.discountValue === undefined || !couponData.startDate || !couponData.endDate) {
             return res.status(400).json({
                 success: false,
@@ -28,6 +61,11 @@ export const createCoupon = (req, res) => {
                 success: false,
                 error: 'discountType must be either FLAT or PERCENT'
             });
+        }
+
+        const valueError = validateCouponValues(couponData);
+        if (valueError) {
+            return res.status(400).json({ success: false, error: valueError });
         }
 
         // Add the coupon
@@ -95,6 +133,11 @@ export const getBestCoupon = (req, res) => {
                 success: false,
                 error: 'cart.items must be an array'
             });
+        }
+
+        const itemsError = validateCartItems(cart.items);
+        if (itemsError) {
+            return res.status(400).json({ success: false, error: itemsError });
         }
 
         // Find best coupon

@@ -11,16 +11,17 @@ export class BestCouponService {
    * @param {Object} user - User context
    * @param {Object} cart - Shopping cart
    * @param {Object} store - CouponStore instance
+   * @param {Date} [now] - Reference time for validity checks (defaults to current time)
    * @returns {Object|null} Best coupon with discount details or null
    */
-  static findBestCoupon(user, cart, store) {
+  static findBestCoupon(user, cart, store, now = new Date()) {
     const allCoupons = store.getAllCoupons();
     const cartValue = DiscountService.calculateCartValue(cart);
     
     // Filter eligible coupons
     const eligibleCoupons = allCoupons.filter(coupon => {
       // Check usage limit
-      if (coupon.usageLimitPerUser !== undefined) {
+      if (coupon.usageLimitPerUser != null) {
         const usageCount = store.getUserUsageCount(user.userId, coupon.code);
         if (usageCount >= coupon.usageLimitPerUser) {
           return false;
@@ -28,7 +29,7 @@ export class BestCouponService {
       }
       
       // Check eligibility rules
-      return EligibilityService.isEligible(coupon, user, cart);
+      return EligibilityService.isEligible(coupon, user, cart, now);
     });
 
     if (eligibleCoupons.length === 0) {
@@ -41,7 +42,7 @@ export class BestCouponService {
       return {
         coupon,
         discount,
-        finalPrice: cartValue - discount
+        finalPrice: Math.round((cartValue - discount) * 100) / 100
       };
     });
 

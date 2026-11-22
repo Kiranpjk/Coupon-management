@@ -3,7 +3,7 @@
  * This serves as our database for the demo
  */
 
-class CouponStore {
+export class CouponStore {
   constructor() {
     this.coupons = new Map(); // code -> coupon
     this.userUsage = new Map(); // userId -> Map(couponCode -> usageCount)
@@ -79,7 +79,7 @@ class CouponStore {
         discountType: 'FLAT',
         discountValue: 100,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           firstOrderOnly: true,
           minCartValue: 500
@@ -92,7 +92,7 @@ class CouponStore {
         discountValue: 20,
         maxDiscountAmount: 500,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           minCartValue: 1000
         }
@@ -103,7 +103,7 @@ class CouponStore {
         discountType: 'FLAT',
         discountValue: 50,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           allowedUserTiers: ['GOLD'],
           minCartValue: 300
@@ -116,7 +116,7 @@ class CouponStore {
         discountValue: 15,
         maxDiscountAmount: 300,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           applicableCategories: ['fashion'],
           minCartValue: 500
@@ -128,7 +128,7 @@ class CouponStore {
         discountType: 'FLAT',
         discountValue: 200,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           applicableCategories: ['electronics'],
           minCartValue: 2000
@@ -141,7 +141,7 @@ class CouponStore {
         discountValue: 25,
         maxDiscountAmount: 1000,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           minLifetimeSpend: 5000,
           minOrdersPlaced: 5
@@ -154,7 +154,7 @@ class CouponStore {
         discountValue: 10,
         maxDiscountAmount: 200,
         startDate: '2025-01-01',
-        endDate: '2025-12-31',
+        endDate: '2030-12-31',
         eligibility: {
           allowedCountries: ['IN'],
           minCartValue: 500
@@ -166,7 +166,7 @@ class CouponStore {
       this.coupons.set(coupon.code, coupon);
     });
 
-    console.log(`✅ Initialized ${seedCoupons.length} seed coupons`);
+    if (process.env.NODE_ENV !== 'test') console.log(`✅ Initialized ${seedCoupons.length} seed coupons`);
   }
 }
 

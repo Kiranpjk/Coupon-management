@@ -8,11 +8,12 @@ export class EligibilityService {
      * @param {Object} coupon - Coupon to check
      * @param {Object} user - User context
      * @param {Object} cart - Shopping cart
+     * @param {Date} [now] - Reference time (defaults to current time)
      * @returns {boolean} True if eligible
      */
-    static isEligible(coupon, user, cart) {
+    static isEligible(coupon, user, cart, now = new Date()) {
         // Check validity period
-        if (!this.isWithinValidityPeriod(coupon.startDate, coupon.endDate)) {
+        if (!this.isWithinValidityPeriod(coupon.startDate, coupon.endDate, now)) {
             return false;
         }
 
@@ -33,15 +34,15 @@ export class EligibilityService {
      * Check if current date is within coupon validity period
      * @param {string} startDate - Start date (YYYY-MM-DD)
      * @param {string} endDate - End date (YYYY-MM-DD)
+     * @param {Date} [now] - Reference time (defaults to current time)
      * @returns {boolean} True if valid
      */
-    static isWithinValidityPeriod(startDate, endDate) {
-        const now = new Date();
+    static isWithinValidityPeriod(startDate, endDate, now = new Date()) {
+        // 'YYYY-MM-DD' strings are parsed as UTC midnight, so the end of day
+        // must be set in UTC too (setHours would use the server's local timezone)
         const start = new Date(startDate);
         const end = new Date(endDate);
-
-        // Set time to end of day for endDate
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
 
         return now >= start && now <= end;
     }
@@ -62,14 +63,14 @@ export class EligibilityService {
 
         // Check minLifetimeSpend
         if (eligibility.minLifetimeSpend !== undefined) {
-            if (user.lifetimeSpend < eligibility.minLifetimeSpend) {
+            if ((user.lifetimeSpend ?? 0) < eligibility.minLifetimeSpend) {
                 return false;
             }
         }
 
         // Check minOrdersPlaced
         if (eligibility.minOrdersPlaced !== undefined) {
-            if (user.ordersPlaced < eligibility.minOrdersPlaced) {
+            if ((user.ordersPlaced ?? 0) < eligibility.minOrdersPlaced) {
                 return false;
             }
         }
