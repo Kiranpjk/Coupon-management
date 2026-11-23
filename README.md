@@ -412,6 +412,12 @@ Dependabot checks npm dependencies (root and `client/`) and GitHub Actions weekl
 
 ---
 
+## 🔒 Security
+
+Dependency audit (Nov 2026): `npm audit` went from 22 advisories to 0 (API 8 → 0, including 1 critical; client 14 → 0). Fixed with `npm audit fix`, plus upgrading the client's Vite 5 → 6.4.6 (the patched release; no config changes needed).
+
+---
+
 ## 🧪 Testing Guide
 
 ### Using the Dashboard
